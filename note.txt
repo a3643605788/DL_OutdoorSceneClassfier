@@ -1,0 +1,19 @@
+outdoor-scene-classifier/
+  README.md
+  .gitignore
+  requirements.txt        # 稍後建立
+  notebooks/
+    00_data_exploration.ipynb   # 先放空檔
+  src/
+    __init__.py
+    dataset.py            # 先放 TODO
+    model.py              # 先放 TODO
+    train.py              # 先放 TODO
+  api/
+    __init__.py
+    app.py                # 之後放 FastAPI / Flask
+  data/
+    raw/                  # 原始圖片或標註
+    processed/            # 前處理後的資料
+  experiments/
+    README.md             # 紀錄實驗設定
