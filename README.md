@@ -33,6 +33,7 @@ The next steps include building a convolutional neural network (CNN) using
 PyTorch, applying data augmentation, and evaluating the model on the test set.
 
 ## Project Structure
+```
 data/
  ├─ raw/
  │   ├─ seg_train/
@@ -42,6 +43,7 @@ data/
 notebooks/
  ├─ dataset_info.ipynb
 README.md
+```
 
 
 
