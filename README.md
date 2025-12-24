@@ -28,9 +28,21 @@ No class re-weighting or over-sampling is required.
 Random samples from each class were visually inspected.
 No obvious mislabeling or corrupted images were found.
 
-## Model (Planned)
-The next steps include building a convolutional neural network (CNN) using
-PyTorch, applying data augmentation, and evaluating the model on the test set.
+## Data Preprocessing
+This step splits the raw training set into train/val/test and writes them into `data/processed/`.
+
+- Input: `data/raw/seg_train`
+- Output: `data/processed/splits/{train,val,test}/<class_name>/...`
+
+Command:
+```bash
+python src/data_preprocessing.py --raw_dir data/raw/seg_train --out_dir data/processed --val_ratio 0.15 --test_ratio 0.15 --img_size 224 --batch_size 32 --copy_mode copy
+```
+
+## Status
+Current: data preprocessing + DataLoader sanity check completed.
+Next: training + evaluation.
+
 
 ## Project Structure
 ```
@@ -40,8 +52,15 @@ data/
  │   ├─ seg_test/
  │   └─ seg_pred/
  └─ processed/
+    └─ splits/
+       ├─ train/
+       ├─ val/
+       └─ test/
 notebooks/
  ├─ dataset_info.ipynb
+ ├─ day5_dataloader_debug.ipynb
+src/
+ ├─ data_preprocessing.py
 README.md
 ```
 

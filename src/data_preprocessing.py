@@ -23,6 +23,15 @@ from torchvision import datasets, transforms
 # DataLoader 是 train_loader / val_loader / test_loader 這三個變數的型別
 # DataLoader會從Dataset取出多筆資料，組合成一個batch，然後在訓練迴圈中一個batch一個batch地餵給模型。
 
+# command(影像資料前處理 + 切分資料集 + 建立 DataLoader):
+# python data_preprocessing.py ^
+#   --raw_dir data/raw/seg_train ^
+#   --out_dir data/processed ^
+#   --val_ratio 0.15 ^
+#   --test_ratio 0.15 ^
+#   --img_size 224 ^
+#   --batch_size 32 ^
+#   --copy_mode copy
 
 # ----------------------------
 # 設定
