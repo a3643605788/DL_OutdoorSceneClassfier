@@ -1,19 +1,21 @@
 outdoor-scene-classifier/
   README.md
   .gitignore
-  requirements.txt        # 稍後建立
   notebooks/
-    00_data_exploration.ipynb   # 先放空檔
-  src/
+    dataset_info.ipynb.ipynb ------------------# 下載Intel Scene Classification dataset，並用notebook 顯⽰ 10 張圖⽚
+    day5_dataloader_debug.ipynb ---------------# DataLoader 測試與 Debug
+  src/ ----------------------------------------# 放可重用、可被訓練/推論流程 import 的程式碼（模型、資料處理、訓練、評估）
     __init__.py
-    dataset.py            # 先放 TODO
-    model.py              # 先放 TODO
-    train.py              # 先放 TODO
+    data_preprocessing.py ---------------------# 資料前處理程式
+    model.py ----------------------------------# (CNN baseline)
+  tools/ --------------------------------------# 放一次性或輔助用途的工具腳本（印 summary、檢查資料夾結構、算類別數、測試 dataloader 等）
+    print_model_summary.py --------------------# 用 summary() 印出模型結構
+    day7_smoke_forward_backward.py ------------# 用來驗證 「資料 → 模型 → loss → 反向傳遞 → 參數更新」 這條路能跑通
   api/
     __init__.py
-    app.py                # 之後放 FastAPI / Flask
+    app.py ------------------------------------# 之後放 FastAPI / Flask
   data/
-    raw/                  # 原始圖片或標註
-    processed/            # 前處理後的資料
-  experiments/
-    README.md             # 紀錄實驗設定
+    raw/ --------------------------------------# 原始圖片或標註
+    processed/ --------------------------------# 前處理後的資料
+  train.py ------------------------------------# 把 src/ 裡的零件組裝起來並啟動訓練任務
+  README.md -----------------------------------# 紀錄實驗設定
