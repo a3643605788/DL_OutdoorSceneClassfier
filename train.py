@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 from pathlib import Path
 from tqdm import tqdm
+import matplotlib.pyplot as plt  # 新增：用於繪圖
+import json                     # 新增：用於儲存數據紀錄
 
 # 1. 引用你寫好的零件
 from src.model import CNNBaseline
@@ -44,6 +46,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
     avg_acc = 100. * correct / total
     return avg_loss, avg_acc
 
+
 # 模型的「期中考試」 (評估泛化能力、檢查是否過擬合)
 # 模型學習完一輪後，使用它沒看過的驗證集資料來評估其實力
 def validate(model, dataloader, criterion, device):
@@ -67,14 +70,46 @@ def validate(model, dataloader, criterion, device):
             
     return val_loss / len(dataloader), 100. * correct / total
 
+
+# 新增：繪圖與存檔函式
+def save_learning_curves(history, output_dir):
+    epochs = range(1, len(history['train_loss']) + 1)
+    
+    plt.figure(figsize=(12, 5))
+
+    # Loss 曲線
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, history['train_loss'], '-o', label='Train Loss')
+    plt.plot(epochs, history['val_loss'], '-o', label='Val Loss')
+    plt.title('Loss Curve')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    # Accuracy 曲線
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, history['train_acc'], '-o', label='Train Acc')
+    plt.plot(epochs, history['val_acc'], '-o', label='Val Acc')
+    plt.title('Accuracy Curve')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(output_dir / "learning_curve.png")
+    print(f"\n[INFO] Learning curve saved to {output_dir / 'learning_curve.png'}")
+
+
 def main():
-    # --- 參數設定 (解決 epochs 未定義問題) ---
+    # --- 參數設定 ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     epochs = 10
     batch_size = 32
     img_size = 224
     lr = 0.001
     split_root = Path("data/processed/splits") # 依照 Day 4 的輸出路徑
+    output_dir = Path("outputs")
+    output_dir.mkdir(exist_ok=True) # 自動建立 outputs 資料夾
 
     # --- 2. 呼叫 Day 4 的函式建立 Loaders ---
     # 這行解決了你提到的 train_loader 和 val_loader 未定義問題
@@ -90,20 +125,38 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
     
+    # 新增：建立歷史紀錄字典
+    history = {
+        'train_loss': [], 'train_acc': [],
+        'val_loss': [], 'val_acc': []
+    }
+    
     # --- 4. 執行 Epoch 迴圈 ---
     for epoch in range(epochs):
         print(f"\nEpoch {epoch+1}/{epochs}")
         
         # 執行訓練
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        
         # 執行驗證
         val_loss, val_acc = validate(model, val_loader, criterion, device)
         
+        # 新增：將數值存入歷史紀錄
+        history['train_loss'].append(train_loss)
+        history['train_acc'].append(train_acc)
+        history['val_loss'].append(val_loss)
+        history['val_acc'].append(val_acc)
+
         # 單一 Epoch 的平均
         # loss:預測值與真實標籤之間差距的指標，值越小差距越小  Acc:猜對的機率有多高
         print(f"Summary - Train Loss: {train_loss:.4f}, Acc: {train_acc:.2f}% | "                   # 訓練集資料的表現 
               f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")                                 # 驗證集資料的表現
+
+    # --- 5. 訓練結束：繪圖並存檔 ---
+    save_learning_curves(history, output_dir)
+
+    # (進階建議) 將原始數據存成 JSON，方便以後分析
+    with open(output_dir / "metrics.json", "w") as f:
+        json.dump(history, f)
 
 if __name__ == "__main__":
     main()

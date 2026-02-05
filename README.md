@@ -10,11 +10,14 @@ data/
  └─ processed/                   # Split into train/val/test
 notebooks/
  ├─ dataset_info.ipynb
- ├─ day5_dataloader_debug.ipynb  # Data pipeline verification
+ └─ day5_dataloader_debug.ipynb  # Data pipeline verification
 src/
  ├─ data_preprocessing.py
- ├─ model.py                     # CNN Baseline architecture
- └─ train.py                     # Training & Validation pipeline
+ └─ model.py                     # CNN Baseline architecture
+outputs/                         # (New) Training logs and visualizations
+ ├─ learning_curve.png           # Visualized performance metrics
+ └─ metrics.json                 # Raw epoch-wise data for reproducibility
+train.py                         # Training & Validation pipeline
 README.md
 ```
 
@@ -53,9 +56,16 @@ Initial training was performed for 10 epochs to establish a performance benchmar
 
 | Metric | Epoch 1 | Epoch 5 | Epoch 10 |
 | :--- | :---: | :---: | :---: |
-| **Train Loss** | 0.9506 | 0.5845 | 0.4762 |
-| **Train Acc** | 62.77% | 78.49% | **83.17%** |
-| **Val Acc** | 63.68% | 81.67% | **81.96%** |
+| **Train Loss** | 0.9292 | 0.5608 | 0.4649 |
+| **Train Acc** | 63.79% | 79.23% | **83.15%** |
+| **Val Acc** | 75.26% | 77.87% | **72.03%** |
 
-### Observation: 
-The model shows healthy convergence. The small gap between Train and Val accuracy indicates strong generalization.
+## Visualizing Performance
+We implemented a learning curve logger that automatically generates visualizations and saves them to the `outputs/` directory.
+
+## Experimental Analysis
+Healthy Convergence: Up to Epoch 9, the model showed a steady improvement in both training and validation metrics.
+
+Epoch 10 Fluctuation: A significant drop in Validation Accuracy (from 82.34% to 72.03%) was observed in the final epoch.
+
+Diagnosis: The spike in Val Loss alongside the decrease in Train Loss suggests the onset of Overfitting. Future iterations will include Early Stopping and Learning Rate Decay to stabilize convergence.
