@@ -4,11 +4,13 @@ outdoor-scene-classifier/
   notebooks/
     dataset_info.ipynb.ipynb ------------------# 下載Intel Scene Classification dataset，並用notebook 顯⽰ 10 張圖⽚
     day5_dataloader_debug.ipynb ---------------# DataLoader 測試與 Debug
-  src/ ----------------------------------------# 放可重用、可被訓練/推論流程 import 的程式碼（模型、資料處理、訓練、評估）
+  src/ ---------------------------------------------# 放可重用、可被訓練/推論流程 import 的程式碼（模型、資料處理、訓練、評估）
     __init__.py
-    data_preprocessing.py ---------------------# 資料前處理程式
+    data_preprocessing.py ---------------------# 資料前處理程式(完整)
     model.py ----------------------------------# (CNN baseline)
-  tools/ --------------------------------------# 放一次性或輔助用途的工具腳本（印 summary、檢查資料夾結構、算類別數、測試 dataloader 等）
+    dataset.py  -------------------------------# 資料前處理程式(一部分)(供evaluate.py使用)
+    evaluate.py -------------------------------# 驗證模型在未見過數據（Test Set）上的最終實力
+  tools/ -------------------------------------------# 放一次性或輔助用途的工具腳本（印 summary、檢查資料夾結構、算類別數、測試 dataloader 等）
     print_model_summary.py --------------------# 用 summary() 印出模型結構
     day7_smoke_forward_backward.py ------------# 用來驗證 「資料 → 模型 → loss → 反向傳遞 → 參數更新」 這條路能跑通
   api/
@@ -17,5 +19,9 @@ outdoor-scene-classifier/
   data/
     raw/ --------------------------------------# 原始圖片或標註
     processed/ --------------------------------# 前處理後的資料
+  outputs/ -----------------------------------------# 將「不可變的程式碼 (src/)」與「變動的實驗結果 (outputs/)」分離。日後調整參數可以拿來對比
+    best_baseline.pth -------------------------# 儲存了模型中數百萬個參數，在驗證損失（Val Loss）最低點時的數值
+    learning_curve.png ------------------------# 將數據轉化為折線圖，呈現 Loss（誤差）如何下降以及 Accuracy（準確率）如何上升
+    metrics.json ------------------------------# 以 JSON 格式完整保留了每一輪（Epoch）的訓練與驗證數值
   train.py ------------------------------------# 把 src/ 裡的零件組裝起來並啟動訓練任務
   README.md -----------------------------------# 紀錄實驗設定

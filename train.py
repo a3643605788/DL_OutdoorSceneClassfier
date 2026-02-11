@@ -103,7 +103,7 @@ def save_learning_curves(history, output_dir):
 def main():
     # --- 參數設定 ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    epochs = 10
+    epochs = 20
     batch_size = 32
     img_size = 224
     lr = 0.001
@@ -131,6 +131,12 @@ def main():
         'val_loss': [], 'val_acc': []
     }
     
+    
+    best_val_loss = float('inf')
+    patience = 3  # 如果連續 3 輪 Val Loss 沒下降就停止
+    trigger_times = 0
+
+
     # --- 4. 執行 Epoch 迴圈 ---
     for epoch in range(epochs):
         print(f"\nEpoch {epoch+1}/{epochs}")
@@ -140,6 +146,22 @@ def main():
         # 執行驗證
         val_loss, val_acc = validate(model, val_loader, criterion, device)
         
+
+        # Model Checkpoint: 永遠儲存最強的版本
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), output_dir / "best_baseline.pth")
+            print(f">>> Found better model! Saved to best_baseline.pth")
+            trigger_times = 0 # 重置計數器
+        else:
+            trigger_times += 1
+            print(f">>> Val loss did not improve. (Count: {trigger_times}/{patience})")
+
+        # Early Stopping: 防止像 Day 10 那樣最後一輪崩壞
+        if trigger_times >= patience:
+            print("Early stopping! Stopping training to prevent overfitting.")
+            break
+
         # 新增：將數值存入歷史紀錄
         history['train_loss'].append(train_loss)
         history['train_acc'].append(train_acc)
