@@ -99,6 +99,6 @@ By visualizing samples where `Street` was misclassified as `Building`, we identi
 ## Experimental Analysis
 - **Phase 1: Baseline Debugging** >   In the initial run, we observed a significant drop in Validation Accuracy at Epoch 10 ($82.34\% \rightarrow 72.03\%$), indicating strong overfitting.
 - **Phase 2: Optimization** >   By applying Early Stopping and Model Checkpointing, we successfully:
- - Captured the model at its peak performance (Epoch 9, $Val\ Acc: 82.3\%$).
- - Reduced wasted compute cycles on an overfitting model.
- - Stabilized the training curve for more reliable inference.
+    - Captured the model at its peak performance (Epoch 9, $Val\ Acc: 82.3\%$).
+    - Reduced wasted compute cycles on an overfitting model.
+    - Stabilized the training curve for more reliable inference.
