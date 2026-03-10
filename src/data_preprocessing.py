@@ -162,18 +162,30 @@ def create_splits(cfg: SplitConfig) -> Dict[str, int]:
 def get_transforms(img_size: int) -> Tuple[transforms.Compose, transforms.Compose]:
     """
     回傳 (train_transform, eval_transform)
-    Normalize 使用 ImageNet mean/std，適合之後接 pretrained backbone（ResNet/EfficientNet 等）
+    Day 13 更新：加入 Targeted Augmentation 解決 Street/Building 混淆問題
     """
     imagenet_mean = (0.485, 0.456, 0.406)
     imagenet_std = (0.229, 0.224, 0.225)
 
+    # 訓練用：強大的數據增強
     train_tfm = transforms.Compose([
-        transforms.Resize((img_size, img_size)),
+        # 1. 解決「只看局部特徵」：
+        # 隨機裁切 50%~100% 的區域並縮放回指定大小。
+        # 這會強迫模型在沒看到「整條街道」或「整棟建築」的情況下也要學會辨識。
+        transforms.RandomResizedCrop(img_size, scale=(0.5, 1.0)),
+        
+        # 2. 增加左右翻轉的隨機性
         transforms.RandomHorizontalFlip(p=0.5),
+        
+        # 3. 解決「光影與色彩誤判」：
+        # 模擬不同天氣（陰天、晴天、黃昏）下的街道與建築顏色
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        
         transforms.ToTensor(),
         transforms.Normalize(imagenet_mean, imagenet_std),
     ])
 
+    # 評估與測試用：標準化縮放（不加隨機擾動）
     eval_tfm = transforms.Compose([
         transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
@@ -189,15 +201,16 @@ def get_transforms(img_size: int) -> Tuple[transforms.Compose, transforms.Compos
 # 建立並回傳多個 DataLoader
 # ----------------------------
 def build_dataloaders(split_root: Path, img_size: int, batch_size: int, num_workers: int = 2) -> Tuple[DataLoader, DataLoader, DataLoader, List[str]]:
+    # 這裡會自動抓到上方修改後的 train_tfm
     train_tfm, eval_tfm = get_transforms(img_size)
 
     train_ds = datasets.ImageFolder(split_root / "train", transform=train_tfm)
     val_ds = datasets.ImageFolder(split_root / "val", transform=eval_tfm)
     test_ds = datasets.ImageFolder(split_root / "test", transform=eval_tfm)
 
-    # ImageFolder 會自動用資料夾名稱排序當作 class list
     class_names = train_ds.classes
 
+    # 設定 pin_memory=True 可以加快 GPU 資料傳輸速度
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)

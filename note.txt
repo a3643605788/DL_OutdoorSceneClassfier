@@ -27,3 +27,5 @@ outdoor-scene-classifier/
     misclassified_samples.png -----------------# 模型「看錯」的那些原始照片印出來
   train.py ------------------------------------# 把 src/ 裡的零件組裝起來並啟動訓練任務
   README.md -----------------------------------# 紀錄實驗設定
+
+開始進行第二階段：模型深度診斷與 Transfer Learning

@@ -92,7 +92,6 @@ The baseline model initially overfitted at Epoch 10. By implementing **Model Che
 By visualizing samples where `Street` was misclassified as `Building`, we identified that the model relies heavily on **vertical geometry and window-like textures**. 
 
 ![Misclassified Samples](outputs/misclassified_samples.png) 
-*(Note: If you saved your Day 12 misclassification plot as an image, link it here)*
 
 **Insight**: The model lacks awareness of "ground-level" context (e.g., asphalt pavement) when buildings occupy >60% of the image.
 

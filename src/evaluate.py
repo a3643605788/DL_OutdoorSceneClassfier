@@ -6,11 +6,13 @@ from sklearn.metrics import confusion_matrix, classification_report
 from model import CNNBaseline  # 確保你之前定義的 model 在這
 from dataset import get_test_loader
 
+# 模型訓練數據化的照片，還原成原始照片
 def denormalize(tensor):
     mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
     std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
     return tensor * std + mean
 
+# 從「讀取模型」到「產出報告」的所有步驟。讓我知道模型到底強不強、錯在哪裡
 def run_day12_evaluation():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     

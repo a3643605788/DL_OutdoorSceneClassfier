@@ -5,6 +5,7 @@ from pathlib import Path
 from tqdm import tqdm
 import matplotlib.pyplot as plt  # 新增：用於繪圖
 import json                     # 新增：用於儲存數據紀錄
+from torch.optim.lr_scheduler import ReduceLROnPlateau  # 新增：匯入 Scheduler
 
 # 1. 引用你寫好的零件
 from src.model import CNNBaseline
@@ -120,10 +121,17 @@ def main():
         num_workers=0 # Windows 下建議先設為 0 以避免錯誤
     )
     
-    # --- 3. 初始化模型 ---
+    # --- 3. 初始化模型、損失函數與優化器 ---
     model = CNNBaseline(num_classes=len(class_names)).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    # 【新增：初始化 Scheduler】
+    # mode='min': 監控指標（val_loss）不再下降時觸發
+    # factor=0.1: 學習率降低為原來的 1/10
+    # patience=2: 如果連續 2 輪指標沒改善，就調降 LR
+    # verbose=True: 降速時會在終端機印出通知
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)
     
     # 新增：建立歷史紀錄字典
     history = {
@@ -147,6 +155,13 @@ def main():
         val_loss, val_acc = validate(model, val_loader, criterion, device)
         
 
+        # 【核心修改：更新 Scheduler】
+        # Scheduler 必須放在 validate 之後，因為它需要根據當前的 val_loss 來判斷是否降速
+        scheduler.step(val_loss)
+
+        # 獲取當前 Learning Rate (用於視覺化觀察)
+        current_lr = optimizer.param_groups[0]['lr']
+
         # Model Checkpoint: 永遠儲存最強的版本
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -157,20 +172,20 @@ def main():
             trigger_times += 1
             print(f">>> Val loss did not improve. (Count: {trigger_times}/{patience})")
 
-        # Early Stopping: 防止像 Day 10 那樣最後一輪崩壞
-        if trigger_times >= patience:
-            print("Early stopping! Stopping training to prevent overfitting.")
-            break
-
         # 新增：將數值存入歷史紀錄
         history['train_loss'].append(train_loss)
         history['train_acc'].append(train_acc)
         history['val_loss'].append(val_loss)
         history['val_acc'].append(val_acc)
+        
+        # Early Stopping: 防止像 Day 10 那樣最後一輪崩壞
+        if trigger_times >= patience:
+            print("Early stopping! Stopping training to prevent overfitting.")
+            break
 
         # 單一 Epoch 的平均
         # loss:預測值與真實標籤之間差距的指標，值越小差距越小  Acc:猜對的機率有多高
-        print(f"Summary - Train Loss: {train_loss:.4f}, Acc: {train_acc:.2f}% | "                   # 訓練集資料的表現 
+        print(f"Summary - LR: {current_lr:.6f} | Train Loss: {train_loss:.4f}, Acc: {train_acc:.2f}% | "                   # 訓練集資料的表現 
               f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")                                 # 驗證集資料的表現
 
     # --- 5. 訓練結束：繪圖並存檔 ---
