@@ -45,7 +45,7 @@ def run_day12_evaluation():
     plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', xticklabels=classes, yticklabels=classes)
     plt.xlabel('Predicted (Model Evaluate)')
-    plt.ylabel('Actual (Real Label)', rotation=0, labelpad=40, va='center')
+    plt.ylabel('Actual (Real Label)')
     plt.yticks(rotation=0)
     plt.title('Day 12: Confusion Matrix')
     plt.show()
