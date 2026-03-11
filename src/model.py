@@ -1,6 +1,6 @@
 # src/model.py
 from __future__ import annotations
-
+from torchvision import models
 import torch
 import torch.nn as nn
 
@@ -56,6 +56,20 @@ class CNNBaseline(nn.Module):
         x = self.classifier(x)
         return x
 
+class ResNetTransfer(nn.Module):
+    def __init__(self, num_classes=6, pretrained=True):
+        super(ResNetTransfer, self).__init__()
+        # 使用 torchvision 2024 年後的最新寫法
+        weights = models.ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
+        self.model = models.resnet18(weights=weights)
+        
+        # 替換最後一層全連接層 (FC layer)
+        # ResNet18 的輸出特徵數預設是 512
+        num_ftrs = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_ftrs, num_classes)
+
+    def forward(self, x):
+        return self.model(x)
 
 def build_model(num_classes: int = 6) -> nn.Module:
     return CNNBaseline(num_classes=num_classes)

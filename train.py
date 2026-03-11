@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau  # 新增：匯入 Schedu
 
 # 1. 引用你寫好的零件
 from src.model import CNNBaseline
+from src.model import ResNetTransfer
 from src.data_preprocessing import build_dataloaders
 
 # 模型的「學習」階段 (學習特徵、更新權重)
@@ -73,16 +74,15 @@ def validate(model, dataloader, criterion, device):
 
 
 # 新增：繪圖與存檔函式
-def save_learning_curves(history, output_dir):
+def save_learning_curves(history, output_dir, model_type):
     epochs = range(1, len(history['train_loss']) + 1)
-    
     plt.figure(figsize=(12, 5))
 
     # Loss 曲線
     plt.subplot(1, 2, 1)
     plt.plot(epochs, history['train_loss'], '-o', label='Train Loss')
     plt.plot(epochs, history['val_loss'], '-o', label='Val Loss')
-    plt.title('Loss Curve')
+    plt.title(f'{model_type} - Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
@@ -91,108 +91,93 @@ def save_learning_curves(history, output_dir):
     plt.subplot(1, 2, 2)
     plt.plot(epochs, history['train_acc'], '-o', label='Train Acc')
     plt.plot(epochs, history['val_acc'], '-o', label='Val Acc')
-    plt.title('Accuracy Curve')
+    plt.title(f'{model_type} - Accuracy (%)')
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy (%)')
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig(output_dir / "learning_curve.png")
-    print(f"\n[INFO] Learning curve saved to {output_dir / 'learning_curve.png'}")
+    plt.savefig(output_dir / f"learning_curve_{model_type}.png")
+    print(f"\n[INFO] Learning curve saved to outputs/learning_curve_{model_type}.png")
 
 
 def main():
+    # 【在這裡切換實驗】
+    model_type = "resnet"  # 可選 "baseline" 或 "resnet"
+
     # --- 參數設定 ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     epochs = 20
     batch_size = 32
     img_size = 224
-    lr = 0.001
-    split_root = Path("data/processed/splits") # 依照 Day 4 的輸出路徑
+    
+    # 【自動切換 LR】Transfer Learning 建議用較小的 0.0001
+    lr = 0.0001 if model_type == "resnet" else 0.001
+    
+    split_root = Path("data/processed/splits")
     output_dir = Path("outputs")
-    output_dir.mkdir(exist_ok=True) # 自動建立 outputs 資料夾
+    output_dir.mkdir(exist_ok=True)
 
-    # --- 2. 呼叫 Day 4 的函式建立 Loaders ---
-    # 這行解決了你提到的 train_loader 和 val_loader 未定義問題
+    # 2. 建立 Loaders
     train_loader, val_loader, test_loader, class_names = build_dataloaders(
         split_root=split_root,
         img_size=img_size,
         batch_size=batch_size,
-        num_workers=0 # Windows 下建議先設為 0 以避免錯誤
+        num_workers=0 
     )
     
-    # --- 3. 初始化模型、損失函數與優化器 ---
-    model = CNNBaseline(num_classes=len(class_names)).to(device)
+    # 3. 根據選擇初始化模型
+    if model_type == "resnet":
+        model = ResNetTransfer(num_classes=len(class_names)).to(device)
+        print(f"\n>>> use Pre-trained ResNet18 (LR={lr})")
+    else:
+        model = CNNBaseline(num_classes=len(class_names)).to(device)
+        print(f"\n>>> mode：use CNN Baseline (LR={lr})")
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
-
-    # 【新增：初始化 Scheduler】
-    # mode='min': 監控指標（val_loss）不再下降時觸發
-    # factor=0.1: 學習率降低為原來的 1/10
-    # patience=2: 如果連續 2 輪指標沒改善，就調降 LR
-    # verbose=True: 降速時會在終端機印出通知
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)
     
-    # 新增：建立歷史紀錄字典
-    history = {
-        'train_loss': [], 'train_acc': [],
-        'val_loss': [], 'val_acc': []
-    }
-    
-    
+    history = {'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
     best_val_loss = float('inf')
-    patience = 3  # 如果連續 3 輪 Val Loss 沒下降就停止
+    patience = 5 # 稍微拉長耐心，讓 Scheduler 有發揮空間
     trigger_times = 0
 
-
-    # --- 4. 執行 Epoch 迴圈 ---
+    # 4. 訓練迴圈
     for epoch in range(epochs):
         print(f"\nEpoch {epoch+1}/{epochs}")
-        
-        # 執行訓練
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        # 執行驗證
         val_loss, val_acc = validate(model, val_loader, criterion, device)
         
-
-        # 【核心修改：更新 Scheduler】
-        # Scheduler 必須放在 validate 之後，因為它需要根據當前的 val_loss 來判斷是否降速
         scheduler.step(val_loss)
-
-        # 獲取當前 Learning Rate (用於視覺化觀察)
         current_lr = optimizer.param_groups[0]['lr']
 
-        # Model Checkpoint: 永遠儲存最強的版本
+        # 這裡會根據 model_type 自動命名權重檔
+        model_filename = f"best_{model_type}.pth"
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), output_dir / "best_baseline.pth")
-            print(f">>> Found better model! Saved to best_baseline.pth")
-            trigger_times = 0 # 重置計數器
+            torch.save(model.state_dict(), output_dir / model_filename)
+            print(f">>> found better model！saved to {model_filename}")
+            trigger_times = 0
         else:
             trigger_times += 1
-            print(f">>> Val loss did not improve. (Count: {trigger_times}/{patience})")
+            print(f">>> Val loss didn't improve ({trigger_times}/{patience})")
 
-        # 新增：將數值存入歷史紀錄
         history['train_loss'].append(train_loss)
         history['train_acc'].append(train_acc)
         history['val_loss'].append(val_loss)
         history['val_acc'].append(val_acc)
         
-        # Early Stopping: 防止像 Day 10 那樣最後一輪崩壞
+        print(f"Summary - LR: {current_lr:.6f} | Train Loss: {train_loss:.4f}, Acc: {train_acc:.2f}% | "
+              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")
+
         if trigger_times >= patience:
-            print("Early stopping! Stopping training to prevent overfitting.")
+            print("Early stopping!")
             break
 
-        # 單一 Epoch 的平均
-        # loss:預測值與真實標籤之間差距的指標，值越小差距越小  Acc:猜對的機率有多高
-        print(f"Summary - LR: {current_lr:.6f} | Train Loss: {train_loss:.4f}, Acc: {train_acc:.2f}% | "                   # 訓練集資料的表現 
-              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")                                 # 驗證集資料的表現
-
-    # --- 5. 訓練結束：繪圖並存檔 ---
-    save_learning_curves(history, output_dir)
-
-    # (進階建議) 將原始數據存成 JSON，方便以後分析
-    with open(output_dir / "metrics.json", "w") as f:
+    # 5. 存檔與繪圖
+    save_learning_curves(history, output_dir, model_type)
+    with open(output_dir / f"metrics_{model_type}.json", "w") as f:
         json.dump(history, f)
 
 if __name__ == "__main__":
