@@ -4,100 +4,75 @@
 This project aims to build a deep learning model to classify outdoor scene images into six categories: **buildings, forest, glacier, mountain, sea, and street**. The goal is to complete an end-to-end (E2E) deep learning pipeline, including data exploration, model training, and evaluation.
 
 ## Project Structure
+
 ```
-data/
- ├─ raw/                         # Original Kaggle dataset
- └─ processed/                   # Split into train/val/test
-notebooks/
- ├─ dataset_info.ipynb
- └─ day5_dataloader_debug.ipynb  # Data pipeline verification
-src/
- ├─ data_preprocessing.py
- └─ model.py                     # CNN Baseline architecture
-outputs/                         # Training logs and visualizations
- ├─ learning_curve.png           # Visualized performance metrics
- ├─ metrics.json                 # Raw epoch-wise data for reproducibility
- └─ best_baseline.pth            # Automatically saved best model weights
-train.py                         # Training & Validation pipeline
-README.md
-```
+DL_OutdoorSceneClassfier
+├── api/
+│   └── app.py                # FastAPI implementation for model serving
+├── data/
+│   ├── raw/                  # Original dataset (Kaggle: Intel Scene)
+│   └── processed/            # Preprocessed and split data (Train/Val/Test)
+├── notebooks/
+│   ├── dataset_info.ipynb    # EDA and dataset visualization
+│   └── dataloader_debug.ipynb # Data pipeline verification & debugging
+├── src/                      # Core modular components
+│   ├── data_preprocessing.py # Script for data cleaning and splitting
+│   ├── dataset.py            # Custom PyTorch Dataset classes
+│   ├── model.py              # Architecture definitions (CNN & ResNet18)
+│   ├── evaluate.py           # Evaluation logic for unseen test data
+│   └── gradcam.py            # Grad-CAM logic for heatmaps
+├── tools/                    # Utility and helper scripts
+│   ├── print_model_summary.py # Prints model architecture and parameters
+│   └── smoke_test.py         # Verifies the full forward/backward pass
+├── train.py                  # Main entry point to start training tasks
+├── run_diagnosis.py          # Script to execute model error analysis
+└── README.md                 # Project documentation and experiment logs
+ ```
 
-## Dataset
-The dataset is based on the Intel Image Classification from Kaggle.
-- Training data: `data/raw/seg_train`
-- Test data: `data/raw/seg_test`
-- Prediction data: `data/raw/seg_pred`
-- Link: `https://www.kaggle.com/datasets/puneet6060/intel-image-classification/data`
+## Key Engineering Features
 
-## Exploratory Data Analysis (EDA)
-An exploratory data analysis was performed to understand class distribution and data quality.
-- Class Distribution: Six classes with ~2,200–2,500 images per class.
-- Balance: The imbalance ratio (largest/smallest) is 1.14, indicating a well-balanced dataset.
-- Data Quality: Visual inspection confirmed no obvious mislabeling or corrupted files.
+* **Robust Training Pipeline**: 
+    * **Early Stopping**: Automatically stops training when validation loss stops improving to prevent overfitting.
+    * **Model Checkpointing**: Saves the best weights (`best_resnet.pth`) based on the lowest validation loss.
+    * **Learning Rate Scheduling**: Dynamically reduces the learning rate (from $10^{-4}$ to $10^{-6}$) to fine-tune the model.
+* **Experiment Tracking**: Integrated with **Weights & Biases (W&B)** to monitor metrics like Loss, Accuracy, and Learning Rate.
+* **Model Diagnostics**: Uses **Grad-CAM** and **Confusion Matrix** to analyze model errors.
 
-## Data Preprocessing
-Automated script to split raw training data into `train/val/test` sets.
-- Resolution: $224 \times 224$ pixels.
-- Split Ratio: 70% Train / 15% Val / 15% Test.
+## Training Performance
 
-Command:
-```bash
-python src/data_preprocessing.py --raw_dir data/raw/seg_train --out_dir data/processed --val_ratio 0.15 --test_ratio 0.15 --img_size 224 --batch_size 32 --copy_mode copy
-```
+The training process demonstrates high stability due to the Learning Rate Scheduler and Early Stopping. 
 
-## Model Architecture: CNN Baseline
-Implemented a modular CNN baseline in `src/model.py`.
-- 4 Convolutional Blocks: Uses `Conv2d -> BatchNorm -> ReLU -> MaxPool`.
-- Engineering Choice: Set `bias=False` in Conv layers since they are followed by BatchNorm, reducing redundant parameters.
-- Global Pooling: Used `AdaptiveAvgPool2d((1, 1))` for input size flexibility.
-- Regularization: Integrated `Dropout(p=0.3)` in the classifier to prevent overfitting.
+* **Best Generalization**: The model achieved its **lowest Validation Loss (0.1776) at Epoch 8**, which was saved as the final production model.
+* **Peak Accuracy**: Validation Accuracy reached its peak of **94.35% at Epoch 10** before the Early Stopping mechanism triggered to prevent overfitting.
 
-## Training & Validation Pipeline
-To ensure model robustness and prevent the overfitting observed in early experiments, we implemented several engineering best practices:
-- **Model Checkpointing**: The training script now monitors `Validation Loss` and automatically saves the state dictionary `(best_baseline.pth)` only when performance improves. This prevents the "Epoch 10 Crash" where the final model is not necessarily the best one.
-- **Early Stopping**: A patience-based trigger ($patience=3$) was added to terminate training if the validation loss stops decreasing. This optimizes training time and prevents weights from diverging.
-- **Performance Tracking**: Full history of training metrics is exported to `metrics.json` for reproducibility.
+![Learning Curve](outputs/learning_curve_resnet.png)
 
-## Training & Validation Results
-Initial training was performed for 10 epochs to establish a performance benchmark.
+## Model Evolution & Results
 
-| Metric | Epoch 1 | Epoch 5 | Epoch 10 |
-| :--- | :---: | :---: | :---: |
-| **Train Loss** | 0.9292 | 0.5608 | 0.4649 |
-| **Train Acc** | 63.79% | 79.23% | **83.15%** |
-| **Val Acc** | 75.26% | 77.87% | **72.03%** |
+I upgraded from a custom CNN to **ResNet18** using **Transfer Learning**, achieving **95.0% weighted average accuracy**.
 
-## Model Evaluation & Error Analysis (Day 12)
-To move beyond simple accuracy metrics, a **Confusion Matrix** was generated to diagnose inter-class confusion.
+| Model | Val Accuracy | F1-Score (Weighted) | Status |
+| :--- | :---: | :---: | :--- |
+| CNN Baseline | 82.3% | 0.81 | Benchmark |
+| **ResNet18 (Optimized)** | **95.0%** | **0.95** | **Production Ready** |
 
-![Confusion Matrix](outputs/confusion_matrix.png)
+### Class-wise Analysis
+The **Confusion Matrix** below reveals that nature scenes (Forest, Sea) have near-perfect accuracy, while some confusion remains between "Glacier" and "Mountain."
 
-### Key Insights:
-- **High Recall in Nature Scenes**: The model performs exceptionally well on `Forest` (97% recall), likely due to distinct color and texture features.
-- **Inter-class Confusion (Street vs. Buildings)**: Significant confusion exists between `Buildings` and `Street`. 
-    - *Diagnosis*: Misclassified `Street` images often feature prominent vertical architectural structures that dominate the frame.
-- **Geological Ambiguity**: `Glacier` and `Mountain` exhibit a 20% confusion rate, which is expected given their shared visual features (snow, jagged edges) in low-resolution inputs ($224 \times 224$).
+![Confusion Matrix](outputs/confusion_matrix_resnet.png)
 
-## Visualizing Performance
-We monitor the training process using automated logging. The following curves demonstrate the effectiveness of our **Early Stopping** mechanism.
+## Model Diagnosis (Grad-CAM)
 
-![Learning Curve](outputs/learning_curve.png)
+To understand why the model misclassified **16 "Street" images as "Buildings"**, I used **Grad-CAM** to visualize the attention maps.
 
-## Iterative Optimization Strategy
+**Discovery**: As shown below, the model focuses heavily on **architectural textures** (windows and walls) but ignores the lower **road/asphalt** features. This explains the confusion when buildings dominate the frame in street photos.
 
-### 1. Handling Overfitting
-The baseline model initially overfitted at Epoch 10. By implementing **Model Checkpointing**, we ensured that `best_baseline.pth` captures the parameters with the lowest validation loss, rather than the final epoch's weights.
+![Grad-CAM Diagnosis](outputs/resnet_diagnosis_gradcam.png)
 
-### 2. Visual Debugging (Error Analysis)
-By visualizing samples where `Street` was misclassified as `Building`, we identified that the model relies heavily on **vertical geometry and window-like textures**. 
+## Tech Stack
 
-![Misclassified Samples](outputs/misclassified_samples.png) 
+* **Framework**: PyTorch, Torchvision
+* **Monitoring**: Weights & Biases (W&B)
+* **API & Validation**: FastAPI, Pydantic
+* **Hardware**: Trained on NVIDIA RTX 2060
 
-**Insight**: The model lacks awareness of "ground-level" context (e.g., asphalt pavement) when buildings occupy >60% of the image.
-
-## Experimental Analysis
-- **Phase 1: Baseline Debugging** >   In the initial run, we observed a significant drop in Validation Accuracy at Epoch 10 ($82.34\% \rightarrow 72.03\%$), indicating strong overfitting.
-- **Phase 2: Optimization** >   By applying Early Stopping and Model Checkpointing, we successfully:
-    - Captured the model at its peak performance (Epoch 9, $Val\ Acc: 82.3\%$).
-    - Reduced wasted compute cycles on an overfitting model.
-    - Stabilized the training curve for more reliable inference.
