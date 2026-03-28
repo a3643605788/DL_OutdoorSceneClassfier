@@ -1,6 +1,6 @@
 # --- 核心深度學習框架 ---
-torch --index-url https://download.pytorch.org/whl/cpu  # 如果部署環境沒 GPU，選 CPU 版能省好幾 GB
-torchvision --index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
 
 # --- API 服務框架 ---
 fastapi
