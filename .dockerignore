@@ -1,0 +1,8 @@
+venv/
+.git/
+.gitignore
+__pycache__/
+*.ipynb
+data/
+notebooks/
+tests/

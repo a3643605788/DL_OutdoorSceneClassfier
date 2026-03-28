@@ -8,7 +8,7 @@ This project aims to build a deep learning model to classify outdoor scene image
 ```
 DL_OutdoorSceneClassfier
 ├── api/
-│   └── app.py                # FastAPI implementation for model serving
+│   └── main.py               # FastAPI implementation for model serving
 ├── data/
 │   ├── raw/                  # Original dataset (Kaggle: Intel Scene)
 │   └── processed/            # Preprocessed and split data (Train/Val/Test)

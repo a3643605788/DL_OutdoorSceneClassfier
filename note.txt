@@ -28,9 +28,15 @@ outdoor-scene-classifier/
     misclassified_samples.png -----------------# 模型「看錯」的那些原始照片印出來
   tests/ -------------------------------------------# 測試
     test_api.py -------------------------------# 自動化單元測試：驗證 API 接口穩定性與推論正確性
+  .gitignore
+  .dockerignore -------------------------------# 防止 Docker 把巨大的 venv、__pycache__ 或訓練用的原始資料也塞進鏡像裡，優化Docker 的 image體積
+  Dockerfile ----------------------------------# 確保最終產品裡只有執行檔沒有垃圾
   run_diagnosis.py ----------------------------# 執行畫熱力圖腳本
   train.py ------------------------------------# 把 src/ 裡的零件組裝起來並啟動訓練任務
+  requirements.txt ----------------------------# 優化 Docker 鏡像（Image）體積
   README.md -----------------------------------# 紀錄實驗設定
 
-uvicorn api.main:app --reload
-開始進行第三階段：MLOps 服務化 
+uvicorn api.main:app --reload   // 測試我的 API
+python -m src.evaluate          // 執行檔案(用 -m 是為了讓路徑停留在根目錄)
+python -m pytest tests/test_api.py  // 自動化測試指令
+開始進行第四階段：容器化與雲端部署
