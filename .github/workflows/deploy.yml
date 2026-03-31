@@ -1,0 +1,46 @@
+name: Continuous Deployment to Cloud Run
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: asia-east1
+  REPO_NAME: my-models
+  IMAGE_NAME: outdoor-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Google Auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Authorize Docker for GCP
+      run: gcloud auth configure-docker asia-east1-docker.pkg.dev
+
+    - name: Build and Push Container
+      run: |-
+        # 使用 Git commit SHA 作為標籤，確保版本唯一性
+        IMAGE_TAG=asia-east1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker build -t $IMAGE_TAG .
+        docker push $IMAGE_TAG
+
+    - name: Deploy to Cloud Run
+      run: |-
+        gcloud run deploy outdoor-api-service \
+          --image asia-east1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --memory 2Gi \
+          --max-instances 3 \
+          --allow-unauthenticated

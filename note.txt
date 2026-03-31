@@ -1,6 +1,4 @@
 outdoor-scene-classifier/
-  README.md
-  .gitignore
   notebooks/
     dataset_info.ipynb.ipynb ------------------# 下載Intel Scene Classification dataset，並用notebook 顯⽰ 10 張圖⽚
     day5_dataloader_debug.ipynb ---------------# DataLoader 測試與 Debug
