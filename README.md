@@ -54,8 +54,8 @@ By applying Software Engineering best practices, I reduced the container footpri
 
 | Metric | CNN Baseline | ResNet18 (Production) | Improvement |
 | :--- | :---: | :---: | :---: |
-| **Accuracy** | 82.3% | **95.0%** | +12.7% |
-| **F1-Score (Weighted)** | 0.81 | **0.95** | +0.14 |
+| **Accuracy** | 87.4% | **94.4%** | +7.0% |
+| **F1-Score (Weighted)** | 0.86 | **0.94** | +0.08 |
 | **Image Footprint** | 8.11 GB | **1.5 GB** | **-81% Size** |
 | **Deployment** | Manual | **Auto CI/CD** | **Fully Automated** |
 
