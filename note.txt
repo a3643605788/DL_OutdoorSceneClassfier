@@ -33,8 +33,3 @@ outdoor-scene-classifier/
   train.py ------------------------------------# 把 src/ 裡的零件組裝起來並啟動訓練任務
   requirements.txt ----------------------------# 優化 Docker 鏡像（Image）體積
   README.md -----------------------------------# 紀錄實驗設定
-
-uvicorn api.main:app --reload   // 測試我的 API
-python -m src.evaluate          // 執行檔案(用 -m 是為了讓路徑停留在根目錄)
-python -m pytest tests/test_api.py  // 自動化測試指令
-開始進行第四階段：容器化與雲端部署
